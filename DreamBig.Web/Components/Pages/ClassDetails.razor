@@ -1,0 +1,264 @@
+﻿@page "/classes/details/{id_class:int}"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@inject IClassGroupRepository ClassRepo
+@inject IEnrollmentRepository EnrollmentRepo
+@inject IStudentRepository StudentRepo
+@inject ILevelRepository LevelRepo
+@inject ITeacherRepository TeacherRepo
+@inject IAssignmentRepository AssignmentRepo
+@inject IRoomRepository RoomRepo
+@inject IScheduleRepository ScheduleRepo
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+@if (classInfo == null || !allLevels.Any() || !allTeachers.Any())
+{
+    <div class="d-flex justify-center align-center" style="height: 200px;">
+        <MudProgressCircular Indeterminate="true" />
+    </div>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4">Clase: @classInfo.level_name (@classInfo.modality)</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="mt-4">
+
+        <MudTabPanel Text="Configuración de la Clase">
+            <MudPaper Class="pa-4">
+                <MudSelect T="int" Label="Nivel" @bind-Value="classInfo.id_level" Class="mb-3">
+                    @foreach (var level in allLevels)
+                    {
+                        <MudSelectItem Value="@level.id_level">@level.level_name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="int" Label="Profesor" @bind-Value="classInfo.id_teacher" Class="mb-3">
+                    @foreach (var teacher in allTeachers)
+                    {
+                        <MudSelectItem Value="@teacher.id_teacher">@teacher.full_name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="string" Label="Modalidad" @bind-Value="classInfo.modality" Class="mb-3">
+                    <MudSelectItem Value="@("Presencial")">Presencial</MudSelectItem>
+                    <MudSelectItem Value="@("Virtual")">Virtual</MudSelectItem>
+                    <MudSelectItem Value="@("Híbrida")">Híbrida</MudSelectItem>
+                </MudSelect>
+
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveClass">Guardar Cambios</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteClass" StartIcon="@Icons.Material.Filled.Delete">Eliminar Clase</MudButton>
+                </div>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Alumnos Inscritos">
+            <MudTable Items="@enrolledStudents" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Nombre del Alumno</MudTh>
+                    <MudTh>Acción</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.student_name</MudTd>
+                    <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteEnroll(context.id_enrollment)" /></MudTd>
+                </RowTemplate>
+            </MudTable>
+            <MudDivider Class="my-4" />
+            <MudAutocomplete T="Student" Label="Buscar alumno" SearchFunc="@SearchStudent" ToStringFunc="@(s => s != null ? s.FullName : "")" @bind-Value="_selectedStudent" />
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-2" OnClick="() => EnrollStudent(_selectedStudent)" Disabled="@(_selectedStudent == null)">Confirmar Inscripción</MudButton>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Horarios y Aulas">
+            <div class="mb-4">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Schedule" OnClick="OpenAddScheduleDialog">
+                    Crear Nuevo Horario
+                </MudButton>
+            </div>
+            <MudTable Items="@assignments" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Día</MudTh><MudTh>Horario</MudTh><MudTh>Aula</MudTh><MudTh>Acción</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.DayName</MudTd>
+                    <MudTd>@($"{context.start_time} - {context.end_time}")</MudTd>
+                    <MudTd>@context.room_name</MudTd>
+                    <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteAssignment(context.id_assignment)" /></MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudPaper Class="pa-4 mt-4" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Agregar Nuevo Horario</MudText>
+                <div class="d-flex gap-2">
+                    <MudSelect T="int" Label="Día" @bind-Value="newAssign.day_of_week" Class="flex-1">
+                        <MudSelectItem Value="0">Lunes</MudSelectItem>
+                        <MudSelectItem Value="1">Martes</MudSelectItem>
+                        <MudSelectItem Value="2">Miércoles</MudSelectItem>
+                        <MudSelectItem Value="3">Jueves</MudSelectItem>
+                        <MudSelectItem Value="4">Viernes</MudSelectItem>
+                        <MudSelectItem Value="5">Sábado</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect T="int" Label="Horario" @bind-Value="newAssign.id_schedule" Class="flex-1">
+                        @foreach (var s in allSchedules)
+                        {
+                            <MudSelectItem Value="@s.id_schedule">@s.DisplayTime</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="int" Label="Aula" @bind-Value="newAssign.id_room" Class="flex-1">
+                        @foreach (var r in allRooms)
+                        {
+                            <MudSelectItem Value="@r.id_room">@r.room_name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddAssignment">Agregar</MudButton>
+                </div>
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public int id_class { get; set; }
+    private ClassGroup classInfo;
+    private List<Enrollment> enrolledStudents = new();
+    private List<Student> allStudents = new();
+    private List<Level> allLevels = new();
+    private List<Teacher> allTeachers = new();
+    private Student _selectedStudent;
+
+    private List<ClassAssignment> assignments = new();
+    private List<Schedule> allSchedules = new();
+    private List<Room> allRooms = new();
+    private ClassAssignment newAssign = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        allLevels = await LevelRepo.GetAllLevelsAsync();
+        allTeachers = await TeacherRepo.GetAllTeachersAsync();
+        allRooms = await RoomRepo.GetAllRoomsAsync();
+        allSchedules = await ScheduleRepo.GetAllSchedulesAsync();
+
+        classInfo = await ClassRepo.GetClassByIdAsync(id_class);
+        enrolledStudents = await EnrollmentRepo.GetStudentsInClassAsync(id_class);
+        allStudents = await StudentRepo.GetAllStudentsAsync();
+        assignments = await AssignmentRepo.GetAssignmentsByClassAsync(id_class);
+
+        newAssign.day_of_week = 0;
+
+        if (allSchedules.Any())
+        {
+            newAssign.id_schedule = allSchedules.First().id_schedule;
+        }
+
+        if (allRooms.Any())
+        {
+            newAssign.id_room = allRooms.First().id_room;
+        }
+    }
+
+    private async Task OpenAddScheduleDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small
+        };
+
+        var dialog = await DialogService.ShowAsync<AddScheduleDialog>(
+            "Gestionar Horarios",
+            options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            allSchedules = await ScheduleRepo.GetAllSchedulesAsync();
+
+            if (allSchedules.Any() && newAssign.id_schedule == 0)
+            {
+                newAssign.id_schedule = allSchedules.First().id_schedule;
+            }
+
+            StateHasChanged();
+
+            Snackbar.Add("Lista de horarios actualizada", Severity.Info);
+        }
+    }
+
+    private async Task SaveClass() { if (await ClassRepo.UpdateClassAsync(classInfo)) Snackbar.Add("Cambios guardados", Severity.Success); }
+
+    private async Task DeleteClass()
+    {
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+            "Eliminar Clase",
+            "¿Estás seguro de que deseas eliminar esta clase, junto con todos sus horarios e inscripciones? Esta acción es irreversible.",
+            yesText: "Eliminar",
+            cancelText: "Cancelar");
+
+        if (confirm == true)
+        {
+            try
+            {
+                if (await ClassRepo.DeleteClassAsync(id_class))
+                {
+                    Snackbar.Add("Clase eliminada correctamente.", Severity.Success);
+                    Nav.NavigateTo("/classes/manage");
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task EnrollStudent(Student s)
+    {
+        if (s == null) return;
+        await EnrollmentRepo.AddEnrollmentAsync(new Enrollment { id_class = id_class, id_student = s.id_student, school_year = DateTime.Now.Year });
+        enrolledStudents = await EnrollmentRepo.GetStudentsInClassAsync(id_class);
+        _selectedStudent = null;
+        Snackbar.Add("Alumno inscripto", Severity.Success);
+    }
+
+    private async Task DeleteEnroll(int id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Confirmar", "¿Quitar alumno?", yesText: "Borrar", cancelText: "Cancelar") == true)
+        {
+            await EnrollmentRepo.DeleteEnrollmentAsync(id);
+            enrolledStudents = await EnrollmentRepo.GetStudentsInClassAsync(id_class);
+        }
+    }
+
+    private async Task AddAssignment()
+    {
+        try
+        {
+            newAssign.id_class = id_class;
+            await AssignmentRepo.AddAssignmentAsync(newAssign);
+            assignments = await AssignmentRepo.GetAssignmentsByClassAsync(id_class);
+
+            newAssign = new ClassAssignment
+            {
+                day_of_week = 0,
+                id_schedule = allSchedules.FirstOrDefault()?.id_schedule ?? 0,
+                id_room = allRooms.FirstOrDefault()?.id_room ?? 0
+            };
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task DeleteAssignment(int id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Confirmar", "¿Eliminar horario?", yesText: "Sí", cancelText: "No") == true)
+        {
+            await AssignmentRepo.DeleteAssignmentAsync(id);
+            assignments = await AssignmentRepo.GetAssignmentsByClassAsync(id_class);
+        }
+    }
+
+    private async Task<IEnumerable<Student>> SearchStudent(string v, CancellationToken ct) =>
+        string.IsNullOrEmpty(v) ? allStudents : allStudents.Where(s => s.FullName.Contains(v, StringComparison.OrdinalIgnoreCase));
+}

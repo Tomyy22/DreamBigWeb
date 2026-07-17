@@ -1,0 +1,148 @@
+﻿@using DreamBigManagement.Models
+@using DreamBig.Web.Constants
+
+@inject NavigationManager Navigation
+
+<MudDialog>
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            Clases de Hoy (@GetFilteredCount())
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        <MudTextField T="string"
+                      @bind-Value="_search"
+                      Placeholder="Buscar clase, profesor o aula..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Class="mb-4"
+                      Immediate="true" />
+
+        <MudList T="WeeklyScheduleItem" Clickable="true">
+
+            @foreach (var item in FilteredClasses)
+            {
+                <MudListItem Class="mb-1"
+                             OnClick="@(() => OpenClass(item.id_class))">
+
+                    <ChildContent>
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween"
+                                  AlignItems="AlignItems.Center"
+                                  Style="width:100%;">
+
+                            <MudStack Row="true"
+                                      AlignItems="AlignItems.Center"
+                                      Spacing="2">
+
+                                <MudAvatar Size="Size.Small"
+                                           Style="@($"background:{ThemeColors.WillowGreen}; color:white;")">
+
+                                    <MudIcon Icon="@Icons.Material.Filled.School" />
+
+                                </MudAvatar>
+
+                                <MudStack Spacing="0">
+
+                                    <MudText Typo="Typo.body1" Style="color: black">
+                                        @item.level_name
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Style="color: black">
+
+                                        @item.start_time - @item.end_time
+                                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                                        @item.room_name
+
+                                    </MudText>
+
+                                    <MudText Typo="Typo.caption" Style="color: black">
+
+                                        @item.teacher_name
+
+                                    </MudText>
+
+                                </MudStack>
+
+                            </MudStack>
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+
+                        </MudStack>
+
+                    </ChildContent>
+
+                </MudListItem>
+
+                <MudDivider />
+
+            }
+
+        </MudList>
+
+        @if (!FilteredClasses.Any())
+        {
+            <MudAlert Severity="Severity.Info"
+                      Dense="true"
+                      Class="mt-3">
+
+                No hay clases programadas para hoy.
+
+            </MudAlert>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Close">
+
+            Cerrar
+
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public List<WeeklyScheduleItem> Classes { get; set; } = new();
+
+    private string _search = "";
+
+    private IEnumerable<WeeklyScheduleItem> FilteredClasses =>
+        string.IsNullOrWhiteSpace(_search)
+            ? Classes
+            : Classes.Where(c =>
+                (c.level_name?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.teacher_name?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (c.room_name?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private int GetFilteredCount()
+        => FilteredClasses.Count();
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+
+    private void OpenClass(int idClass)
+    {
+        MudDialog.Close();
+
+        Navigation.NavigateTo($"/classes/details/{idClass}");
+    }
+
+}

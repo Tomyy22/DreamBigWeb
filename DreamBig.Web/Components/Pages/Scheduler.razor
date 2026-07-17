@@ -1,0 +1,121 @@
+﻿@page "/scheduler"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@using MudBlazor
+@inject IScheduleRepository ScheduleRepo
+@inject IRoomRepository RoomRepo
+@inject IAssignmentRepository AssignmentRepo
+@inject NavigationManager NavManager
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4">Cronograma Semanal</MudText>
+
+<MudSelect T="int" Label="Filtrar por Aula" ValueChanged="OnFilterChanged" Value="@selectedRoomId" Class="mb-4" Style="max-width: 300px;">
+    @foreach (var room in rooms)
+    {
+        <MudSelectItem Value="@room.id_room">@room.room_name</MudSelectItem>
+    }
+</MudSelect>
+
+<MudTable Items="@schedules" Hover="true" Bordered="true" Striped="true" Loading="loading">
+    <HeaderContent>
+        <MudTh>Horario</MudTh>
+        <MudTh>Lunes</MudTh>
+        <MudTh>Martes</MudTh>
+        <MudTh>Miércoles</MudTh>
+        <MudTh>Jueves</MudTh>
+        <MudTh>Viernes</MudTh>
+        <MudTh>Sábado</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Horario">@context.start_time - @context.end_time</MudTd>
+        @for (int d = 0; d < 6; d++)
+        {
+            int dayIndex = d;
+            var match = assignments.FirstOrDefault(a => a.id_schedule == context.id_schedule &&
+            a.day_of_week == dayIndex);
+
+            <MudTd Style="@($"background-color: {ThemeColors.BlancoPuro};")">
+                @if (match != null)
+                {
+                    <div @onclick="@(() => NavigateToClass(match.id_class))"
+                         style="cursor: pointer; transition: transform 0.2s;"
+                         class="hover-zoom">
+
+                        <MudPaper Elevation="2"
+                                  Class="pa-2"
+                                  Style="@($"background-color: {ThemeColors.WillowGreen}; border-left: 5px solid {ThemeColors.WillowGreen};")">
+
+                            <MudText Typo="Typo.caption" Style="@($"font-weight:bold; display:block; color: {ThemeColors.TextoGris};")">
+                                @match.level_name
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="@($"display:block; color: {ThemeColors.TextoGris};")">
+                                Aula: @match.room_name
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="@($"display:block; color: {ThemeColors.TextoGris};")">
+                                Prof: @match.teacher_name
+                            </MudText>
+                        </MudPaper>
+                    </div>
+                }
+            </MudTd>
+        }
+    </RowTemplate>
+</MudTable>
+
+<style>
+    .hover-zoom:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+    }
+
+    .mud-table-root .mud-table-cell {
+        background-color: @ThemeColors.Bone !important;
+        padding: 8px !important;
+    }
+
+    .mud-table-row {
+        height: 80px;
+    }
+</style>
+@code {
+    private int selectedRoomId;
+    private List<Schedule> schedules = new();
+    private List<Room> rooms = new();
+    private List<WeeklyScheduleItem> assignments = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        rooms = await RoomRepo.GetAllRoomsAsync();
+        schedules = await ScheduleRepo.GetAllSchedulesAsync();
+        await LoadAssignments(null);
+
+        if (rooms.Any())
+        {
+            selectedRoomId = rooms.First().id_room;
+
+            await OnFilterChanged(selectedRoomId);
+        }
+    }
+
+    private void NavigateToClass(int idClass)
+    {
+        NavManager.NavigateTo($"/classes/details/{idClass}");
+    }
+
+    private async Task OnFilterChanged(int aulaId)
+    {
+        await LoadAssignments(aulaId);
+        selectedRoomId = aulaId;
+    }
+
+    private async Task LoadAssignments(int? aulaId)
+    {
+        loading = true;
+        assignments = await AssignmentRepo.GetFullWeeklyScheduleAsync(aulaId);
+        loading = false;
+        StateHasChanged();
+    }
+}

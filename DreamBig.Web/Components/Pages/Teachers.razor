@@ -1,0 +1,59 @@
+﻿@page "/teachers/manage"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITeacherRepository TeacherRepo
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Gestionar Profesores</MudText>
+
+<MudTable Items="@teachers" Filter="new Func<Teacher, bool>(FilterFunc)" Hover="true" Striped="true">
+    <ToolBarContent>
+        <MudTextField @bind-Value="searchString" Placeholder="Buscar por apellido..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Apellido, Nombre</MudTh>
+        <MudTh>Teléfono</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nombre">@context.full_name</MudTd>
+        <MudTd DataLabel="Teléfono">@context.phone</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Primary"
+                           Href="@($"/teachers/edit/{context.id_teacher}")" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           OnClick="() => DeleteTeacher(context.id_teacher)" />
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<Teacher> teachers = new();
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync() => teachers = await TeacherRepo.GetAllTeachersAsync();
+
+    private bool FilterFunc(Teacher t) =>
+        string.IsNullOrWhiteSpace(searchString) || t.last_name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+
+    private async Task DeleteTeacher(int id)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Confirmar eliminación",
+            "¿Estás seguro de que deseas borrar este profesor? Esta acción no se puede deshacer.",
+            yesText: "Borrar", cancelText: "Cancelar");
+
+        if (result == true)
+        {
+            await TeacherRepo.DeleteTeacherAsync(id);
+            teachers = await TeacherRepo.GetAllTeachersAsync();
+        }
+    }
+}

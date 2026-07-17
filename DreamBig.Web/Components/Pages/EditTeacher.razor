@@ -1,0 +1,34 @@
+﻿@page "/teachers/edit/{Id:int}"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITeacherRepository TeacherRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4">Editar Profesor</MudText>
+
+<MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+    <MudTextField Label="Nombre" @bind-Value="teacher.first_name" Class="mb-3" />
+    <MudTextField Label="Apellido" @bind-Value="teacher.last_name" Class="mb-3" />
+    <MudTextField Label="Teléfono" @bind-Value="teacher.phone" Class="mb-3" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="UpdateTeacher">Guardar Cambios</MudButton>
+    <MudButton Variant="Variant.Text" OnClick='() => Nav.NavigateTo("/teachers/manage")' Class="ml-2">Cancelar</MudButton>
+</MudPaper>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Teacher teacher = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        teacher = await TeacherRepo.GetTeacherByIdAsync(Id);
+    }
+
+    private async Task UpdateTeacher()
+    {
+        await TeacherRepo.UpdateTeacherAsync(teacher);
+        Nav.NavigateTo("/teachers/manage");
+    }
+}

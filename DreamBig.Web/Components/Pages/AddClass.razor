@@ -1,0 +1,63 @@
+﻿@page "/classes/add"
+@using DreamBig.Core.Data.Repositories
+@using DreamBigManagement.Models
+@inject IClassGroupRepository ClassRepo
+@inject ILevelRepository LevelRepo
+@inject ITeacherRepository TeacherRepo
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h4" Class="mb-4">Nueva Clase</MudText>
+
+<MudPaper Class="pa-4">
+    <MudSelect T="int" Label="Nivel" @bind-Value="newClass.id_level" Class="mb-3">
+        @foreach (var level in allLevels)
+        {
+            <MudSelectItem Value="@level.id_level">@level.level_name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudSelect T="int" Label="Profesor" @bind-Value="newClass.id_teacher" Class="mb-3">
+        @foreach (var teacher in allTeachers)
+        {
+            <MudSelectItem Value="@teacher.id_teacher">@teacher.full_name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudSelect T="string" Label="Modalidad" @bind-Value="newClass.modality" Class="mb-3">
+        <MudSelectItem Value="@("Presencial")">Presencial</MudSelectItem>
+        <MudSelectItem Value="@("Virtual")">Virtual</MudSelectItem>
+        <MudSelectItem Value="@("Híbrida")">Híbrida</MudSelectItem>
+    </MudSelect>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveNewClass" Class="mt-3">
+        Crear Clase
+    </MudButton>
+</MudPaper>
+
+@code {
+    private ClassGroup newClass = new();
+    private List<Level> allLevels = new();
+    private List<Teacher> allTeachers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        allLevels = await LevelRepo.GetAllLevelsAsync();
+        allTeachers = await TeacherRepo.GetAllTeachersAsync();
+
+        if (allLevels.Any()) newClass.id_level = allLevels.First().id_level;
+        if (allTeachers.Any()) newClass.id_teacher = allTeachers.First().id_teacher;
+
+        newClass.modality = "Presencial";
+    }
+
+    private async Task SaveNewClass()
+    {
+        int id = await ClassRepo.AddClassAsync(newClass);
+        if (id > 0)
+        {
+            Snackbar.Add("Clase creada exitosamente", Severity.Success);
+            Nav.NavigateTo("/classes/manage");
+        }
+    }
+}

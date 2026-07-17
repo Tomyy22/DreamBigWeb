@@ -1,0 +1,41 @@
+﻿@page "/classes/manage"
+@using DreamBig.Core.Data.Repositories
+@using DreamBigManagement.Models
+@inject IClassGroupRepository ClassRepo
+@inject NavigationManager Nav
+
+<MudText Typo="Typo.h4" Class="mb-4">Gestionar Clases</MudText>
+
+<MudTable Items="@allClasses" Hover="true" Striped="true">
+    <HeaderContent>
+        <MudTh>Nivel</MudTh>
+        <MudTh>Profesor</MudTh>
+        <MudTh>Modalidad</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.level_name</MudTd>
+        <MudTd>@context.teacher_name</MudTd>
+        <MudTd>@context.modality</MudTd>
+        <MudTd>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       OnClick="() => GoToDetails(context.id_class)">
+                Detalles
+            </MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<ClassGroup> allClasses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        allClasses = await ClassRepo.GetAllClassesAsync();
+    }
+
+    private void GoToDetails(int id)
+    {
+        Nav.NavigateTo($"/classes/details/{id}");
+    }
+}

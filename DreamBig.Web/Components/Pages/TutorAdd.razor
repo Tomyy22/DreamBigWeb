@@ -1,0 +1,30 @@
+﻿@page "/tutors/add"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITutorRepository TutorRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Nuevo Tutor</MudText>
+
+<MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+    <MudTextField Label="Nombre" @bind-Value="newTutor.first_name" Class="mb-3" />
+    <MudTextField Label="Apellido" @bind-Value="newTutor.last_name" Class="mb-3" />
+    <MudTextField Label="Teléfono" @bind-Value="newTutor.phone_number" Class="mb-3" />
+    <MudTextField Label="Dirección" @bind-Value="newTutor.address" Class="mb-3" />
+
+    <MudButton Variant="Variant.Filled" Style="@($"background-color: {ThemeColors.WillowGreen}; color: white;")" OnClick="SaveTutor">Guardar</MudButton>
+
+    <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/tutors/manage"))" Class="ml-2">Cancelar</MudButton>
+</MudPaper>
+
+@code {
+    private Tutor newTutor = new();
+
+    private async Task SaveTutor()
+    {
+        await TutorRepo.AddTutorAsync(newTutor);
+        Nav.NavigateTo("/tutors/manage");
+    }
+}

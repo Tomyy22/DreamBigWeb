@@ -1,0 +1,193 @@
+﻿@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using MudBlazor
+
+@inject IAcademicRepository AcademicRepo
+@inject ILevelRepository LevelRepo
+@inject ISnackbar Snackbar
+
+<MudDialog>
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEdit ? "Editar Historial Académico" : "Agregar Historial Académico")
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        <MudPaper Elevation="0" Class="pa-4">
+
+            <MudGrid>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="int"
+                                  Label="Año"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Number"
+                                  @bind-Value="newGrade.school_year" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int"
+                               Label="Nivel"
+                               Variant="Variant.Outlined"
+                               @bind-Value="newGrade.id_level_taken">
+
+                        @foreach (var lvl in levels)
+                        {
+                            <MudSelectItem Value="@lvl.id_level">
+                                @lvl.level_name
+                            </MudSelectItem>
+                        }
+
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle1">
+                        Calificaciones
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="double"
+                                     Label="Nota Escrita"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="10"
+                                     Step="0.5"
+                                     @bind-Value="newGrade.written_score" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="double"
+                                     Label="Nota Oral"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="10"
+                                     Step="0.5"
+                                     @bind-Value="newGrade.oral_score" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Label="Examen Internacional (Opcional)"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  @bind-Value="newGrade.intl_exam_info" />
+                </MudItem>
+
+            </MudGrid>
+
+        </MudPaper>
+
+    </DialogContent>
+
+    <DialogActions>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel">
+            Cancelar
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="Save">
+            @(IsEdit ? "Actualizar" : "Guardar")
+        </MudButton>
+
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int StudentId { get; set; }
+
+    [Parameter]
+    public AcademicHistory? Grade { get; set; }
+
+    private AcademicHistory newGrade = new();
+
+    private List<Level> levels = new();
+
+    private bool IsEdit => newGrade.id_grade > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        levels = await LevelRepo.GetAllLevelsAsync();
+
+        if (Grade != null)
+        {
+            newGrade = new AcademicHistory
+            {
+                id_grade = Grade.id_grade,
+                id_student = Grade.id_student,
+                school_year = Grade.school_year,
+                id_level_taken = Grade.id_level_taken,
+                written_score = Grade.written_score,
+                oral_score = Grade.oral_score,
+                intl_exam_info = Grade.intl_exam_info,
+                exam_date = Grade.exam_date
+            };
+        }
+        else
+        {
+            newGrade.id_student = StudentId;
+            newGrade.school_year = DateTime.Now.Year;
+            newGrade.exam_date = DateTime.Now.ToString("yyyy-MM-dd");
+
+            if (levels.Any())
+                newGrade.id_level_taken = levels.First().id_level;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Save()
+    {
+        if (newGrade.written_score < 0 || newGrade.written_score > 10)
+        {
+            Snackbar.Add("La nota escrita debe estar entre 0 y 10.", Severity.Warning);
+            return;
+        }
+
+        if (newGrade.oral_score < 0 || newGrade.oral_score > 10)
+        {
+            Snackbar.Add("La nota oral debe estar entre 0 y 10.", Severity.Warning);
+            return;
+        }
+
+        bool ok;
+
+        if (IsEdit)
+        {
+            ok = await AcademicRepo.UpdateGradeAsync(newGrade);
+
+            if (ok)
+                Snackbar.Add("Nota actualizada correctamente.", Severity.Success);
+        }
+        else
+        {
+            ok = await AcademicRepo.AddGradeAsync(newGrade);
+
+            if (ok)
+                Snackbar.Add("Nota agregada correctamente.", Severity.Success);
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

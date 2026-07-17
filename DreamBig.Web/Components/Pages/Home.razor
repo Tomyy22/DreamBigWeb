@@ -1,0 +1,185 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using DreamBig.Web.Constants
+@using DreamBig.Core.Data.Repositories
+@inject IStudentRepository StudentRepository
+@inject ITeacherRepository TeacherRepository
+@inject IAssignmentRepository AssignmentRepository
+@inject IPaymentRepository PaymentRepository
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.h4" Class="mb-6" Style="@($"color: {ThemeColors.TextoGris};")">
+    Dashboard
+</MudText>
+
+<MudGrid>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Style="@($"border-left: 5px solid {ThemeColors.WillowGreen};")">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2" Style="@($"color: {ThemeColors.TextoGris};")">
+                    Alumnos Activos
+                </MudText>
+
+                <MudText Typo="Typo.h4" Style="@($"color: {ThemeColors.TextoGris};")">
+                    @activeStudentsCount
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="dashboard-card"
+                 Style="@($"border-left: 5px solid {ThemeColors.SoftSage}; cursor:pointer;")"
+                 @onclick="OpenDebtorsDialog">
+
+            <MudCardContent>
+
+                <MudText Typo="Typo.subtitle2"
+                         Style="@($"color: {ThemeColors.TextoGris};")">
+                    Alumnos Deudores
+                </MudText>
+
+                <MudText Typo="Typo.h4"
+                         Style="@($"color: {ThemeColors.TextoGris};")">
+                    @debtorsCount
+                </MudText>
+
+            </MudCardContent>
+
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Style="@($"border-left: 5px solid {ThemeColors.AshGrey};")">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2" Style="@($"color: {ThemeColors.TextoGris};")">
+                    Docentes
+                </MudText>
+
+                <MudText Typo="Typo.h4" Style="@($"color: {ThemeColors.TextoGris};")">
+                    @teacherCount
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Class="dashboard-card"
+                 Style="@($"border-left: 5px solid {ThemeColors.WillowGreen}; cursor:pointer;")"
+                 @onclick="OpenTodayClassesDialog">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle2" Style="@($"color: {ThemeColors.TextoGris};")">
+                    Clases Hoy
+                </MudText>
+
+                <MudText Typo="Typo.h4" Style="@($"color: {ThemeColors.TextoGris};")">
+                    @classesToday
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+
+    private int activeStudentsCount;
+    private int debtorsCount;
+    private int teacherCount;
+    private int classesToday;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboard();
+    }
+
+    private async Task OpenDebtorsDialog()
+    {
+        var students = await PaymentRepository.GetDebtorsAsync();
+
+        var parameters = new DialogParameters<DebtorsDialog>
+    {
+        {
+            x => x.Students,
+            students
+        }
+    };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        await DialogService.ShowAsync<DebtorsDialog>(
+            "Alumnos Deudores",
+            parameters,
+            options);
+    }
+
+    private async Task OpenTodayClassesDialog()
+    {
+        int today = DateTime.Today.DayOfWeek switch
+        {
+            DayOfWeek.Monday => 0,
+            DayOfWeek.Tuesday => 1,
+            DayOfWeek.Wednesday => 2,
+            DayOfWeek.Thursday => 3,
+            DayOfWeek.Friday => 4,
+            DayOfWeek.Saturday => 5,
+            _ => -1
+        };
+
+        if (today == -1)
+            return;
+
+        var classes = await AssignmentRepository.GetTodayClassesAsync(today);
+
+        var parameters = new DialogParameters<TodayClassesDialog>
+    {
+        {
+            x => x.Classes,
+            classes
+        }
+    };
+
+        await DialogService.ShowAsync<TodayClassesDialog>(
+            "Clases de Hoy",
+            parameters,
+            new DialogOptions
+            {
+                FullWidth = true,
+                MaxWidth = MaxWidth.Medium
+            });
+    }
+
+    private async Task LoadDashboard()
+    {
+        var students = await StudentRepository.GetAllStudentsAsync();
+        activeStudentsCount = students.Count;
+
+        var teachers = await TeacherRepository.GetAllTeachersAsync();
+        teacherCount = teachers.Count;
+
+        debtorsCount = await PaymentRepository.GetDebtorsCountAsync();
+
+        int today = DateTime.Today.DayOfWeek switch
+        {
+            DayOfWeek.Monday => 0,
+            DayOfWeek.Tuesday => 1,
+            DayOfWeek.Wednesday => 2,
+            DayOfWeek.Thursday => 3,
+            DayOfWeek.Friday => 4,
+            DayOfWeek.Saturday => 5,
+            _ => -1
+        };
+
+        classesToday = today == -1
+            ? 0
+            : await AssignmentRepository.GetTodayClassesCountAsync(today);
+    }
+
+}

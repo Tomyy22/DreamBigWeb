@@ -1,0 +1,132 @@
+﻿@page "/rooms"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@using MudBlazor
+
+@inject IRoomRepository RoomRepo
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4"
+         Style="@($"color:{ThemeColors.TextoGris};")">
+    Gestión de Aulas
+</MudText>
+
+<MudDataGrid T="Room"
+             @ref="_dataGrid"
+             Items="@rooms"
+             ReadOnly="false"
+             EditMode="DataGridEditMode.Form"
+             CommittedItemChanges="SaveRoom"
+             CanceledEditingItem="CancelEdit"
+             Bordered="true"
+             Striped="true">
+
+    <ToolBarContent>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddRoom">
+            Nueva Aula
+        </MudButton>
+    </ToolBarContent>
+
+    <Columns>
+
+        <PropertyColumn Property="x => x.room_name"
+                        Title="Nombre del Aula" />
+
+        <TemplateColumn Title="Acciones">
+            <CellTemplate>
+
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Color="Color.Primary"
+                               OnClick="@(() => _dataGrid!.SetEditingItemAsync(context.Item))" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               OnClick="@(() => DeleteRoom(context.Item))" />
+
+            </CellTemplate>
+        </TemplateColumn>
+
+    </Columns>
+
+</MudDataGrid>
+
+@code {
+
+    private List<Room> rooms = new();
+    private MudDataGrid<Room>? _dataGrid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRooms();
+    }
+
+    private async Task LoadRooms()
+    {
+        rooms = await RoomRepo.GetAllRoomsAsync();
+        StateHasChanged();
+    }
+
+    private async Task AddRoom()
+    {
+        var room = new Room();
+
+        rooms.Insert(0, room);
+
+        await _dataGrid!.SetEditingItemAsync(room);
+    }
+
+    private async Task<DataGridEditFormAction> SaveRoom(Room room)
+    {
+        if (room.id_room == 0)
+        {
+            await RoomRepo.AddRoomAsync(room);
+            Snackbar.Add("Aula creada correctamente.", Severity.Success);
+        }
+        else
+        {
+            await RoomRepo.UpdateRoomAsync(room);
+            Snackbar.Add("Aula actualizada correctamente.", Severity.Success);
+        }
+
+        await LoadRooms();
+
+        return DataGridEditFormAction.Close;
+    }
+
+    private async Task CancelEdit(Room room)
+    {
+        if (room.id_room == 0)
+        {
+            rooms.Remove(room);
+
+            rooms = await RoomRepo.GetAllRoomsAsync();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteRoom(Room room)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Confirmar",
+            $"¿Está seguro de eliminar el aula '{room.room_name}'?",
+            yesText: "Borrar",
+            cancelText: "Cancelar");
+
+        if (result == true)
+        {
+            await RoomRepo.DeleteRoomAsync(room.id_room);
+
+            Snackbar.Add("Aula eliminada.", Severity.Success);
+
+            await LoadRooms();
+        }
+    }
+}

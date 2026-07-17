@@ -1,0 +1,98 @@
+﻿@using DreamBigManagement.Models
+@using DreamBig.Web.Constants;
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            Alumnos Deudores (@GetFilteredCount())
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField T="string"
+                      @bind-Value="_search"
+                      Placeholder="Buscar alumno..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Class="mb-4"
+                      Immediate="true" />
+
+        <MudList T="Student" Clickable="true">
+            @foreach (var student in FilteredStudents)
+            {
+                <MudListItem Class="mb-1" OnClick="@(() => OpenStudent(student.id_student))">
+                    <ChildContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+                            <MudAvatar Size="Size.Small" Color="Color.Primary">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" />
+                            </MudAvatar>
+
+                            <MudStack Spacing="0">
+
+                                <MudText Typo="Typo.body1">
+                                    @student.FullName
+                                </MudText>
+
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Outlined"
+                                         Style="@($"color:{ThemeColors.AshGrey};border-color:{ThemeColors.WillowGreen};")">
+                                    @student.current_level_name
+                                </MudChip>
+
+                            </MudStack>
+
+                        </MudStack>
+                    </ChildContent>
+                </MudListItem>
+                <MudDivider />
+            }
+        </MudList>
+
+        @if (!FilteredStudents.Any())
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                No hay alumnos con cuotas pendientes.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">
+            Cerrar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public List<Student> Students { get; set; } = new();
+
+    private string _search = "";
+
+    private IEnumerable<Student> FilteredStudents => string.IsNullOrWhiteSpace(_search)
+        ? Students
+        : Students.Where(x => x.FullName != null && x.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private int GetFilteredCount()
+    {
+        return FilteredStudents.Count();
+    }
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+
+    private void OpenStudent(int id)
+    {
+        MudDialog.Close();
+        Navigation.NavigateTo($"/students/profile/{id}?tab=payments");
+    }
+}

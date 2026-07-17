@@ -1,0 +1,53 @@
+﻿@page "/students/edit/{Id:int}"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject IStudentRepository StudentRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Editar Alumno</MudText>
+
+@if (student == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+        <MudForm>
+            <MudTextField Label="Nombre" @bind-Value="student.first_name" Class="mb-3" />
+            <MudTextField Label="Apellido" @bind-Value="student.last_name" Class="mb-3" />
+            <MudTextField Label="DNI" @bind-Value="student.DNI" Class="mb-3" />
+            <MudTextField Label="Teléfono" @bind-Value="student.phone" Class="mb-3" />
+
+            <MudButton Variant="Variant.Filled"
+                       Style="@($"background-color: {ThemeColors.WillowGreen}; color: white;")"
+                       OnClick="UpdateStudent" Class="mt-3">
+                Guardar Cambios
+            </MudButton>
+            <MudButton Variant="Variant.Text" OnClick="Cancel" Class="mt-3 ml-2">Cancelar</MudButton>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Student student;
+
+    protected override async Task OnInitializedAsync()
+    {
+        student = await StudentRepo.GetStudentByIDAsync(Id);
+    }
+
+    private async Task UpdateStudent()
+    {
+        bool success = await StudentRepo.UpdateStudentAsync(student);
+        if (success)
+        {
+            Nav.NavigateTo("/students");
+        }
+    }
+
+    private void Cancel() => Nav.NavigateTo("/students");
+}

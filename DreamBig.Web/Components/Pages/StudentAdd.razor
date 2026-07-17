@@ -1,0 +1,77 @@
+﻿@page "/students/add"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject IStudentRepository StudentRepo
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Agregar Nuevo Alumno</MudText>
+
+<MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+    <MudForm @ref="form">
+        <MudTextField T="string" Label="Nombre" @bind-Value="newStudent.first_name" Required="true" Class="mb-3" />
+        <MudTextField T="string" Label="Apellido" @bind-Value="newStudent.last_name" Required="true" Class="mb-3" />
+        <MudTextField T="string" Label="DNI" @bind-Value="newStudent.DNI" Required="true" Class="mb-3" />
+        <MudTextField T="string" Label="Teléfono" @bind-Value="newStudent.phone" Class="mb-3" />
+
+        <MudButton Variant="Variant.Filled"
+                   Style="@($"background-color: {ThemeColors.WillowGreen}; color: white;")"
+                   OnClick="SaveStudent" Class="mt-3">
+            Guardar Alumno
+        </MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Class="mt-3 ml-2">Cancelar</MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private Student newStudent = new Student { status = 1 };
+    private MudForm form;
+
+    private async Task SaveStudent()
+    {
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            try
+            {
+                var existingStudent = await StudentRepo.GetStudentByDNIAsync(newStudent.DNI);
+
+                if (existingStudent != null)
+                {
+                    if (existingStudent.status == 0)
+                    {
+                        bool? result = await DialogService.ShowMessageBoxAsync(
+                            "Alumno inactivo encontrado",
+                            "Este DNI ya existe en el sistema pero está dado de baja. ¿Deseas reactivarlo?",
+                            yesText: "Reactivar", cancelText: "Cancelar");
+
+                        if (result == true)
+                        {
+                            existingStudent.status = 1;
+                            await StudentRepo.UpdateStudentAsync(existingStudent);
+                            Nav.NavigateTo("/students");
+                        }
+                    }
+                    else
+                    {
+                        await DialogService.ShowMessageBoxAsync("Error", "Este DNI ya pertenece a un alumno activo en el sistema.", "Aceptar");
+                    }
+                }
+                else
+                {
+                    await StudentRepo.AddStudentAsync(newStudent);
+                    Nav.NavigateTo("/students");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel() => Nav.NavigateTo("/students");
+}

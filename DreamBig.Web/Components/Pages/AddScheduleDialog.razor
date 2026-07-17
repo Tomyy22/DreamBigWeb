@@ -1,0 +1,44 @@
+﻿@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@inject IScheduleRepository ScheduleRepo
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTimePicker Label="Hora Inicio" @bind-Time="startTime" AmPm="false" />
+        <MudTimePicker Label="Hora Fin" @bind-Time="endTime" AmPm="false" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private TimeSpan? startTime = DateTime.Now.TimeOfDay;
+    private TimeSpan? endTime = DateTime.Now.TimeOfDay.Add(new TimeSpan(1, 0, 0));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        if (startTime >= endTime)
+        {
+            Snackbar.Add("La hora de inicio debe ser anterior a la de fin.", Severity.Warning);
+            return;
+        }
+
+        var newSchedule = new Schedule
+        {
+            start_time = startTime?.ToString(@"hh\:mm"),
+            end_time = endTime?.ToString(@"hh\:mm")
+        };
+
+        await ScheduleRepo.AddScheduleAsync(newSchedule);
+        Snackbar.Add("Horario guardado correctamente", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

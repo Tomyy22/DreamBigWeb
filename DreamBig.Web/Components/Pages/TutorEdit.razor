@@ -1,0 +1,52 @@
+﻿@page "/tutors/edit/{Id:int}"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITutorRepository TutorRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Editar Tutor</MudText>
+
+@if (tutor == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+        <MudForm>
+            <MudTextField Label="Nombre" @bind-Value="tutor.first_name" Class="mb-3" />
+            <MudTextField Label="Apellido" @bind-Value="tutor.last_name" Class="mb-3" />
+            <MudTextField Label="Teléfono" @bind-Value="tutor.phone_number" Class="mb-3" />
+            <MudTextField Label="Dirección" @bind-Value="tutor.address" Class="mb-3" />
+
+            <MudButton Variant="Variant.Filled"
+                       ButtonType="ButtonType.Button"
+                       Style="@($"background-color: {ThemeColors.WillowGreen}; color: white;")"
+                       OnClick="UpdateTutor">
+                Guardar
+            </MudButton>
+
+            <MudButton Variant="Variant.Text"
+                       ButtonType="ButtonType.Button"
+                       OnClick='() => Nav.NavigateTo("/tutors/manage")'
+                       Class="ml-2">
+                Cancelar
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Tutor tutor;
+
+    protected override async Task OnInitializedAsync() => tutor = await TutorRepo.GetTutorByIdAsync(Id);
+
+    private async Task UpdateTutor()
+    {
+        await TutorRepo.UpdateTutorAsync(tutor);
+        Nav.NavigateTo("/tutors/manage");
+    }
+}

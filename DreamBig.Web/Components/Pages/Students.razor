@@ -1,0 +1,64 @@
+﻿@page "/students"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject IStudentRepository StudentRepo
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Gestionar Alumnos</MudText>
+
+<MudTable Items="@students" Filter="new Func<Student, bool>(FilterFunc)" Hover="true" Striped="true">
+    <ToolBarContent>
+        <MudTextField @bind-Value="searchString" Placeholder="Buscar por apellido..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Apellido, Nombre</MudTh>
+        <MudTh>DNI</MudTh>
+        <MudTh>Teléfono</MudTh>
+        <MudTh>Nivel</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nombre">@context.FullName</MudTd>
+        <MudTd DataLabel="DNI">@context.DNI</MudTd>
+        <MudTd DataLabel="Teléfono">@context.phone</MudTd>
+        <MudTd DataLabel="Nivel">@(context.current_level_name ?? "Sin asignar")</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Person"
+                           Color="Color.Info"
+                           Href="@($"/students/profile/{context.id_student}")" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Primary"
+                           Href="@($"/students/edit/{context.id_student}")" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteStudent(context.id_student)" />
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<Student> students = new();
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync() => students = await StudentRepo.GetAllStudentsAsync();
+
+    private bool FilterFunc(Student s) =>
+        string.IsNullOrWhiteSpace(searchString) || s.last_name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+
+    private async Task DeleteStudent(int id)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Confirmar eliminación",
+            "¿Estás seguro de que deseas borrar este alumno? Esta acción no se puede deshacer.",
+            yesText: "Borrar", cancelText: "Cancelar");
+
+        if (result == true)
+        {
+            await StudentRepo.DeleteStudentAsync(id);
+            students = await StudentRepo.GetAllStudentsAsync();
+        }
+    }
+}

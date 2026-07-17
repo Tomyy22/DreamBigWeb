@@ -1,0 +1,601 @@
+﻿@page "/students/profile/{Id:int}"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants;
+@using QuestPDF.Fluent;
+@using QuestPDF.Helpers;
+@using QuestPDF.Infrastructure;
+@using Microsoft.AspNetCore.Components
+@inject IStudentRepository StudentRepo
+@inject IAcademicRepository AcademicRepo
+@inject IPaymentRepository PaymentRepo
+@inject ITutorRepository TutorRepo
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+@if (student == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4">@student.FullName</MudText>
+
+    <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+
+        <MudTabPanel Text="Personal">
+
+            <MudPaper Class="pa-6" Elevation="2">
+
+                <MudGrid Spacing="4">
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" GutterBottom="true">
+                            Información Personal
+                        </MudText>
+
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4" Outlined="true">
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Badge" Color="MudBlazor.Color.Primary" />
+
+                                <div>
+                                    <MudText Typo="Typo.caption">DNI</MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @(string.IsNullOrWhiteSpace(student.DNI)
+                                                                            ? "DNI no cargado"
+                                                                            : student.DNI)
+                                                                                      </MudText>
+                                                                                  </div>
+                                                                              </MudStack>
+
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4" Outlined="true">
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Phone" Color="MudBlazor.Color.Success" />
+
+                                <div>
+                                    <MudText Typo="Typo.caption">Teléfono</MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @(string.IsNullOrWhiteSpace(student.phone)
+                                                                            ? "Teléfono no cargado"
+                                                                            : student.phone)
+                                </MudText>
+                            </div>
+                        </MudStack>
+
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4" Outlined="true">
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="MudBlazor.Color.Warning" />
+
+                                <div>
+                                    <MudText Typo="Typo.caption">Cuota Mensual</MudText>
+                                    <MudText Typo="Typo.body1">
+                                        $ @student.price.ToString("N0")
+                                    </MudText>
+                                </div>
+                            </MudStack>
+
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4" Outlined="true">
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Color="MudBlazor.Color.Info" />
+
+                                <div>
+                                    <MudText Typo="Typo.caption">Alumno</MudText>
+                                    <MudText Typo="Typo.body1">
+                                        @student.FullName
+                                    </MudText>
+                                </div>
+                            </MudStack>
+
+                        </MudPaper>
+                    </MudItem>
+
+                </MudGrid>
+
+            </MudPaper>
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Historial Académico">
+
+            <div class="mb-3">
+                <MudButton Variant="Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddGradeDialog">
+                    Añadir Nota
+                </MudButton>
+            </div>
+
+            <MudTable Items="@academicHistory" Hover="true" Striped="true">
+
+                <HeaderContent>
+                    <MudTh>Año</MudTh>
+                    <MudTh>Nivel</MudTh>
+                    <MudTh>Escrito</MudTh>
+                    <MudTh>Oral</MudTh>
+                    <MudTh>Examen Internacional</MudTh>
+                    <MudTh style="width:120px">Acciones</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+
+                    <MudTd>@context.school_year</MudTd>
+
+                    <MudTd>@context.LevelName</MudTd>
+
+                    <MudTd>@context.written_score</MudTd>
+
+                    <MudTd>@context.oral_score</MudTd>
+
+                    <MudTd>
+                        @if (string.IsNullOrWhiteSpace(context.intl_exam_info))
+                        {
+                            <MudText Color="MudBlazor.Color.Secondary">-</MudText>
+                        }
+                        else
+                        {
+                            @context.intl_exam_info
+                        }
+                    </MudTd>
+
+                    <MudTd>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="MudBlazor.Color.Primary"
+                                       Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => OpenEditGradeDialog(context))" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="MudBlazor.Color.Error"
+                                       Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => DeleteGrade(context))" />
+
+                    </MudTd>
+
+                </RowTemplate>
+
+            </MudTable>
+
+        </MudTabPanel>
+
+        <MudTabPanel Text="Pagos">
+            <MudTable Items="@mesesGenerados" Hover="true" Striped="true" Context="item">
+                <HeaderContent>
+                    <MudTh>Mes</MudTh>
+                    <MudTh>Estado</MudTh>
+                    <MudTh>Monto</MudTh>
+                    <MudTh>Pago</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@item.MesNombre</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Color="@(item.pago.is_paid == 1 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                            @(item.pago.is_paid == 1 ? "Pagado" : "Pendiente")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField Value="@item.pago.amount" Adornment="Adornment.Start" AdornmentText="$" Disabled="true" Style="-webkit-text-fill-color: black; color: black; opacity: 1;" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@(item.pago.is_paid == 1 ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                       Color="@(item.pago.is_paid == 1 ? MudBlazor.Color.Success : MudBlazor.Color.Error)"
+                                       Size="MudBlazor.Size.Large"
+                                       OnClick="@(() => TogglePago(item))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Contactos">
+            <MudText Typo="Typo.h6" Class="mb-4">Tutores vinculados</MudText>
+
+            <MudGrid Spacing="2">
+                @foreach (var tutor in tutors)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4" Outlined="true" Style="@($"background-color: {ThemeColors.Bone};")">
+                            <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Color="MudBlazor.Color.Primary" />
+                                    <div>
+                                        <MudText Typo="Typo.caption">Tutor</MudText>
+                                        <MudText Typo="Typo.body1"><b>@tutor.FullName</b></MudText>
+                                        <MudText Typo="Typo.body2">Tel: @tutor.phone_number</MudText>
+                                        <MudText Typo="Typo.body2">Dir: @tutor.address</MudText>
+                                    </div>
+                                </MudStack>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
+                                               OnClick="() => UnlinkTutor(tutor.id_tutor)" />
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudDivider Class="my-6" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Vincular tutor existente</MudText>
+            <div class="d-flex gap-2 align-center">
+                <MudAutocomplete T="Tutor" Label="Buscar tutor..."
+                                 SearchFunc="@SearchTutor"
+                                 ToStringFunc="@(t => t?.FullName)"
+                                 @bind-Value="_selectedTutor"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="LinkTutor"
+                           Disabled="@(_selectedTutor == null)">Vincular</MudButton>
+            </div>
+
+            <MudButton Href="/tutors/add" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary" Class="mt-4">
+                Crear nuevo tutor
+            </MudButton>
+        </MudTabPanel>
+
+    </MudTabs>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery]
+    public string? tab { get; set; }
+    private Student student;
+    private List<AcademicHistory> academicHistory = new();
+    private List<Payment> payments = new();
+    private List<Tutor> tutors = new();
+    private List<Tutor> allTutors = new();
+    private Tutor _selectedTutor;
+    private int _activeTab = 0;
+
+    private class MesPago
+    {
+        public string MesNombre { get; set; }
+        public int NumeroMes { get; set; }
+        public Payment pago { get; set; }
+    }
+
+    private async Task OpenAddGradeDialog()
+    {
+        var parameters = new DialogParameters { ["StudentId"] = Id };
+        var dialog = await DialogService.ShowAsync<AddGradeDialog>("Registrar Nueva Nota", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            academicHistory = await AcademicRepo.GetHistoryByStudentAsync(Id);
+            Snackbar.Add("Nota registrada correctamente", Severity.Success);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenEditGradeDialog(AcademicHistory grade)
+    {
+        var parameters = new DialogParameters
+        {
+            ["StudentId"] = Id,
+            ["Grade"] = grade
+        };
+
+        var dialog = await DialogService.ShowAsync<AddGradeDialog>(
+            "Editar Nota",
+            parameters);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            academicHistory = await AcademicRepo.GetHistoryByStudentAsync(Id);
+
+            Snackbar.Add("Nota actualizada correctamente", Severity.Success);
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteGrade(AcademicHistory grade)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Eliminar Nota",
+            $"¿Desea eliminar la nota del año {grade.school_year}?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar");
+
+        if (result == true)
+        {
+            await AcademicRepo.DeleteGradeAsync(grade.id_grade);
+
+            academicHistory = await AcademicRepo.GetHistoryByStudentAsync(Id);
+
+            Snackbar.Add("Nota eliminada correctamente", Severity.Success);
+
+            StateHasChanged();
+        }
+    }
+
+    private List<MesPago> mesesGenerados = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var studentTask = StudentRepo.GetStudentByIDAsync(Id);
+        var academicTask = AcademicRepo.GetHistoryByStudentAsync(Id);
+        var paymentTask = PaymentRepo.GetPaymentsByStudentAsync(Id, DateTime.Now.Year);
+        var tutorTask = TutorRepo.GetTutorsByStudentAsync(Id);
+        var allTutorsTask = TutorRepo.GetAllTutorsAsync();
+
+        await Task.WhenAll(studentTask, academicTask, paymentTask, tutorTask,allTutorsTask);
+
+        student = await studentTask;
+        academicHistory = await academicTask;
+        payments = await paymentTask;
+        tutors = await tutorTask;
+        allTutors = await allTutorsTask;
+
+        GenerarGrillaPagos(payments);
+    }
+
+    private async Task<IEnumerable<Tutor>> SearchTutor(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value)) return allTutors;
+
+        return allTutors.Where(x => x.FullName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task LinkTutor()
+    {
+        if (_selectedTutor == null) return;
+        await TutorRepo.LinkTutorToStudentAsync(Id, _selectedTutor.id_tutor);
+        tutors = await TutorRepo.GetTutorsByStudentAsync(Id);
+        _selectedTutor = null;
+        Snackbar.Add("Tutor vinculado", Severity.Success);
+    }
+
+    private async Task UnlinkTutor(int idTutor)
+    {
+        await TutorRepo.UnassignTutorAsync(Id, idTutor);
+        tutors = await TutorRepo.GetTutorsByStudentAsync(Id);
+        Snackbar.Add("Tutor desvinculado", Severity.Info);
+    }
+
+    private void GenerarGrillaPagos(List<Payment> pagosExistentes)
+    {
+        string[] nombresMeses = { "", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic" };
+        mesesGenerados.Clear();
+
+        double precioCuota = student?.price ?? 0;
+
+        for (int i = 2; i <= 12; i++)
+        {
+            var p = pagosExistentes.FirstOrDefault(x => x.month == i);
+
+            if (p == null)
+            {
+                p = new Payment
+                {
+                    id_student = Id,
+                    month = i,
+                    year = DateTime.Now.Year,
+                    is_paid = 0,
+                    amount = precioCuota
+                };
+            }
+            else if (p.amount != precioCuota)
+            {
+                p.amount = precioCuota;
+            }
+
+            mesesGenerados.Add(new MesPago { MesNombre = nombresMeses[i], NumeroMes = i, pago = p });
+        }
+        if (tab?.Equals("payments", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            _activeTab = 2;
+        }
+    }
+
+    private async Task TogglePago(MesPago item)
+    {
+        bool nuevoEstado = item.pago.is_paid == 0;
+
+        string titulo = nuevoEstado ? "Registrar Pago" : "Anular Pago";
+        string mensaje = nuevoEstado
+            ? $"¿Confirmar que el mes de {item.MesNombre} está pagado?"
+            : $"¿Desea marcar el mes de {item.MesNombre} como pendiente?";
+
+        bool? confirmado = await DialogService.ShowMessageBoxAsync(
+            titulo,
+            mensaje,
+            yesText: "Sí",
+            cancelText: "No");
+
+        if (confirmado == true)
+        {
+            item.pago.is_paid = nuevoEstado ? 1 : 0;
+            item.pago.payment_date = nuevoEstado ? DateTime.Now.ToString("yyyy-MM-dd") : null;
+
+            bool guardado = await PaymentRepo.SavePaymentAsync(item.pago);
+
+            if (guardado)
+            {
+                Snackbar.Add(nuevoEstado ? "Pago registrado" : "Pago anulado", Severity.Success);
+
+                if (nuevoEstado)
+                {
+                    bool? generarPdf = await DialogService.ShowMessageBoxAsync(
+                        "Pago Registrado",
+                        "¿Desea generar el comprobante PDF?",
+                        yesText: "Generar",
+                        cancelText: "No");
+
+                    if (generarPdf == true)
+                    {
+                        GenerarFacturaPdf(item);
+                    }
+                }
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add("Error al guardar", Severity.Error);
+            }
+        }
+    }
+
+    private void GenerarFacturaPdf(MesPago item)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(40);
+
+                page.Header()
+     .Background(QuestPDF.Helpers.Colors.White)
+     .Column(header =>
+     {
+         header.Item()
+             .AlignCenter()
+             .PaddingBottom(10)
+             .Container()
+             .Width(150) 
+             .Height(150)
+             .Image("./dreambiglogo.png"); 
+
+         header.Item()
+             .Background(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.WillowGreen))
+             .Padding(15)
+             .Row(row => 
+             {
+                 row.RelativeItem()
+                     .AlignLeft()
+                     .Text("COMPROBANTE DE PAGO")
+                     .FontSize(18)
+                     .Bold()
+                     .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+                 row.RelativeItem()
+                     .AlignRight()
+                     .Text($"Fecha\n{DateTime.Now:dd/MM/yyyy}")
+                     .FontSize(10)
+                     .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+             });
+     });
+
+
+                page.Content()
+                    .Column(col =>
+                    {
+                        col.Item()
+                            .PaddingVertical(20)
+                            .Background(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.Bone))
+                            .Padding(20)
+                            .Column(info =>
+                            {
+                                info.Item()
+                                    .Text("DATOS DEL ALUMNO")
+                                    .FontSize(13)
+                                    .Bold()
+                                    .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.WillowGreen));
+
+                                info.Item()
+                                    .PaddingTop(10)
+                                    .Text($"Alumno: {student.FullName}")
+                                    .FontSize(12)
+                                    .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+                                info.Item()
+                                    .Text($"Concepto: Cuota correspondiente al mes de {item.MesNombre}")
+                                    .FontSize(12)
+                                    .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+                            });
+
+
+                        col.Item()
+                            .PaddingTop(10)
+                            .Background(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.SoftSage))
+                            .Padding(15)
+                            .Row(row =>
+                            {
+                                row.RelativeItem()
+                                    .Text("TOTAL PAGADO")
+                                    .FontSize(14)
+                                    .Bold()
+                                    .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+
+                                row.RelativeItem()
+                                    .AlignRight()
+                                    .Text($"$ {item.pago.amount:N0}")
+                                    .FontSize(18)
+                                    .Bold()
+                                    .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+                            });
+
+
+                        col.Item()
+                            .PaddingTop(30)
+                            .AlignCenter()
+                            .Text("¡Gracias por confiar en Dream Big!")
+                            .Italic()
+                            .FontSize(12)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+                    });
+
+
+                page.Footer()
+                    .BorderTop(1)
+                    .BorderColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.WillowGreen))
+                    .PaddingTop(10)
+                    .Row(row =>
+                    {
+                        row.RelativeItem()
+                            .Text("Dream Big - English Tuition")
+                            .FontSize(9)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris));
+
+
+                        row.RelativeItem()
+                            .AlignRight()
+                            .Text(text =>
+                            {
+                                text.DefaultTextStyle(x => x.FontSize(9).FontColor(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.TextoGris)));
+                                text.Span("Página ");
+                                text.CurrentPageNumber();
+                            });
+                    });
+
+            });
+        });
+
+
+        string fileName = $"Factura_{student.FullName}_{item.MesNombre}.pdf";
+
+        document.GeneratePdf(fileName);
+
+        Snackbar.Add($"Factura generada: {fileName}", Severity.Success);
+    }
+
+}

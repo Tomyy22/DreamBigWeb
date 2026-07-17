@@ -1,0 +1,28 @@
+﻿@page "/teachers/add"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITeacherRepository TeacherRepo
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4">Nuevo Profesor</MudText>
+
+<MudPaper Class="pa-4" Style="@($"background-color: {ThemeColors.Bone};")">
+    <MudTextField Label="Nombre" @bind-Value="newTeacher.first_name" Class="mb-3" />
+    <MudTextField Label="Apellido" @bind-Value="newTeacher.last_name" Class="mb-3" />
+    <MudTextField Label="Teléfono" @bind-Value="newTeacher.phone" Class="mb-3" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveTeacher">Guardar</MudButton>
+    <MudButton Variant="Variant.Text" OnClick='() => Nav.NavigateTo("/teachers/manage")' Class="ml-2">Cancelar</MudButton>
+</MudPaper>
+
+@code {
+    private Teacher newTeacher = new();
+
+    private async Task SaveTeacher()
+    {
+        await TeacherRepo.AddTeacherAsync(newTeacher);
+        Nav.NavigateTo("/teachers/manage");
+    }
+}

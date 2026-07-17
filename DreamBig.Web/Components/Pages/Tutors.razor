@@ -1,0 +1,41 @@
+﻿@page "/tutors/manage"
+@using DreamBigManagement.Models
+@using DreamBig.Core.Data.Repositories
+@using DreamBig.Web.Constants
+@inject ITutorRepository TutorRepo
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Class="mb-4" Style="@($"color: {ThemeColors.TextoGris};")">Gestionar Tutores</MudText>
+
+<MudTable Items="@tutors" Hover="true" Striped="true">
+    <HeaderContent>
+        <MudTh>Apellido, Nombre</MudTh>
+        <MudTh>Teléfono</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nombre">@context.FullName</MudTd>
+        <MudTd DataLabel="Teléfono">@context.phone_number</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Href="@($"/tutors/edit/{context.id_tutor}")" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteTutor(context.id_tutor)" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Tutor> tutors = new();
+
+    protected override async Task OnInitializedAsync() => tutors = await TutorRepo.GetAllTutorsAsync();
+
+    private async Task DeleteTutor(int id)
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync("Confirmar", "¿Borrar este tutor? Se eliminarán sus vínculos con alumnos.", yesText: "Borrar", cancelText: "Cancelar");
+        if (result == true)
+        {
+            await TutorRepo.DeleteTutorAsync(id);
+            tutors = await TutorRepo.GetAllTutorsAsync();
+        }
+    }
+}

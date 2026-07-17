@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+
+*.db
+*.sqlite
+*.sqlite3
+
+db/supabase/export/
+db/supabase/backups/
+*.bak
+
+appsettings.Production.json
+
+appsettings.json
+
+appsettings.Development.json
