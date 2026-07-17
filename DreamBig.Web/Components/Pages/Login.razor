@@ -1,0 +1,32 @@
+﻿@page "/login"
+@inject AuthService Auth
+@inject NavigationManager Nav
+@layout EmptyLayout
+@using DreamBig.Web.Constants
+@using System
+
+<div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color: @ThemeColors.Bone;">
+    <div style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 300px; text-align: center;">
+        <h3 style="color: @ThemeColors.WillowGreen; margin-bottom: 20px;">Acceso Dream Big</h3>
+
+        <input type="password" @bind="passwordInput" placeholder="Contraseña"
+               style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid @ThemeColors.SoftSage; border-radius: 5px;" />
+
+        <button @onclick="Validar"
+                style="width: 100%; padding: 10px; background-color: @ThemeColors.WillowGreen; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Entrar
+        </button>
+    </div>
+</div>
+
+@code {
+    private string passwordInput;
+    private void Validar()
+    {
+        if (passwordInput == Environment.GetEnvironmentVariable("APP_PASSWORD"))
+        {
+            Auth.Login();
+            Nav.NavigateTo("/");
+        }
+    }
+}

@@ -20,6 +20,7 @@ builder.Services.AddScoped<IScheduleRepository, ScheduleRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<ITutorRepository, TutorRepository>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddMudServices();
 
 builder.Services.AddRazorComponents()
