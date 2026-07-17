@@ -12,6 +12,7 @@
 @inject ITutorRepository TutorRepo
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 @if (student == null)
@@ -459,7 +460,7 @@ else
         }
     }
 
-    private void GenerarFacturaPdf(MesPago item)
+    private async Task GenerarFacturaPdf(MesPago item)
     {
         string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot", "dreambiglogo.png");
         QuestPDF.Settings.License = LicenseType.Community;
