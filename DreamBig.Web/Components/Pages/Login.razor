@@ -1,26 +1,96 @@
 ﻿@page "/login"
+@layout EmptyLayout
+
+@using DreamBig.Web.Constants
+
 @inject AuthService Auth
 @inject NavigationManager Nav
-@layout EmptyLayout
-@using DreamBig.Web.Constants
-@using System
+@inject ISnackbar Snackbar
 
-<div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color: @ThemeColors.Bone;">
-    <div style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 300px; text-align: center;">
-        <h3 style="color: @ThemeColors.WillowGreen; margin-bottom: 20px;">Acceso Dream Big</h3>
+<MudContainer MaxWidth="MaxWidth.False"
+              Class="d-flex justify-center align-center"
+              Style="@($"height: 100vh; background: linear-gradient(135deg, {ThemeColors.Bone} 0%, #F8F8F5 55%, {ThemeColors.SoftSage}30 100%);")">
 
-        <input type="password" @bind="passwordInput" placeholder="Contraseña"
-               style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid @ThemeColors.SoftSage; border-radius: 5px;" />
+    <MudPaper Elevation="12"
+              Class="pa-8"
+              Style="width:430px; border-radius:22px;">
 
-        <button @onclick="Validar"
-                style="width: 100%; padding: 10px; background-color: @ThemeColors.WillowGreen; color: white; border: none; border-radius: 5px; cursor: pointer;">
-            Entrar
-        </button>
-    </div>
-</div>
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+
+            <MudImage Src="dreambiglogo.png"
+                      Alt="Dream Big"
+                      Style="height:115px;"
+                      Class="mb-2" />
+
+            <MudText Typo="Typo.h5"
+                     Style="font-weight:700; color:#4F5F52;">
+                Sistema de Gestión
+            </MudText>
+
+            <MudText Typo="Typo.body2"
+                     Align="Align.Center"
+                     Color="Color.Secondary">
+                Instituto Dream Big
+            </MudText>
+
+            <MudDivider Class="my-2" />
+
+            <MudTextField T="string"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          Immediate="true"
+                          @bind-Value="passwordInput"
+                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="TogglePassword"
+                          OnKeyDown="HandleKeyDown" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Style="height:48px;"
+                       StartIcon="@Icons.Material.Filled.Login"
+                       OnClick="Validar">
+
+                Ingresar
+
+            </MudButton>
+
+            <MudText Typo="Typo.caption"
+                     Align="Align.Center"
+                     Class="mt-3"
+                     Style="opacity:.65">
+
+                Sistema de Gestión Académica<br />
+                © @DateTime.Now.Year Tomas Plassy
+
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
+
+</MudContainer>
 
 @code {
-    private string passwordInput;
+
+    private string passwordInput = "";
+    private bool _showPassword;
+
+    private void TogglePassword()
+    {
+        _showPassword = !_showPassword;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Validar();
+    }
+
     private void Validar()
     {
         if (passwordInput == Environment.GetEnvironmentVariable("APP_PASSWORD"))
@@ -28,5 +98,12 @@
             Auth.Login();
             Nav.NavigateTo("/");
         }
+        else
+        {
+            Snackbar.Add("Contraseña incorrecta.", Severity.Error);
+            passwordInput = "";
+        }
     }
+
+ 
 }
