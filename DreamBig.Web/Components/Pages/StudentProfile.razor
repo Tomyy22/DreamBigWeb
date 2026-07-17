@@ -461,9 +461,10 @@ else
 
     private void GenerarFacturaPdf(MesPago item)
     {
+        string logoPath = Path.Combine(Environment.CurrentDirectory, "wwwroot", "dreambiglogo.png");
         QuestPDF.Settings.License = LicenseType.Community;
 
-        var document = Document.Create(container =>
+        byte[] pdfData = Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -480,7 +481,7 @@ else
              .Container()
              .Width(150) 
              .Height(150)
-             .Image("./dreambiglogo.png"); 
+             .Image(System.IO.File.ReadAllBytes(logoPath));
 
          header.Item()
              .Background(QuestPDF.Infrastructure.Color.FromHex(ThemeColors.WillowGreen))
@@ -588,14 +589,17 @@ else
                     });
 
             });
-        });
+        }).GeneratePdf();
 
 
         string fileName = $"Factura_{student.FullName}_{item.MesNombre}.pdf";
 
-        document.GeneratePdf(fileName);
+        using var stream = new MemoryStream(pdfData);
+        using var streamRef = new DotNetStreamReference(stream);
 
-        Snackbar.Add($"Factura generada: {fileName}", Severity.Success);
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+        Snackbar.Add("Factura generada y descargada", Severity.Success);
     }
 
 }
